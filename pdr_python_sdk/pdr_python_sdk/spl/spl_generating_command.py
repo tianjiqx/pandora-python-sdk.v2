@@ -12,6 +12,8 @@ limitations under the License.
 """
 
 import sys
+import pyarrow as pa
+import pyarrow.flight
 
 from .spl_packet_utils import *
 from .spl_base_command import SplBaseCommand
@@ -30,3 +32,22 @@ class SplGeneratingCommand(SplBaseCommand):
             self.lines = []
             if self.is_finish:
                 break
+
+    # 向量化引擎
+    def process_data_v2(self, fd):
+        # client 获取 输入流
+        # reader = self.flight_client.do_get(pa.flight.Ticket(bytes(fd.path, "uft-8")))
+        writer, _ = self.flight_client.do_put(fd, self.schema)
+        while True:
+            # RecordBatch  .to_pandas()
+            batch = self.generate_v2()
+            # 输出结果
+            if batch:
+                writer.write_batch(batch)
+            if self.is_finish:
+                writer.close()
+                self.finish()
+                break
+
+    def generate_v2(self):
+        return None

@@ -18,6 +18,28 @@ import os
 from .common.logging import config_logging
 
 
+def get_opts(argv=None):
+    """
+    解析参数
+    :return: args dictionary
+    """
+    result = {}
+    try:
+        opts, args = getopt.getopt(argv, 'v:u:fd:', ['version=', 'uri=', 'file_descriptor='])
+        result = dict(opts)
+    except getopt.GetoptError:
+        return result
+    return result
+
+
+def try_get_opt(opts, short_name, long_name):
+    if opts.get(short_name):
+        return opts.get(short_name)
+    elif opts.get(short_name):
+        return opts.get(short_name)
+    else:
+        raise Exception("Can't get " + short_name + " or " + long_name)
+
 class OnDemandAction(object):
     """
     One time action which process starts on new request and ends after handling it.

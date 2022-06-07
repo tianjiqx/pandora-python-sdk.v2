@@ -12,6 +12,8 @@ limitations under the License.
 """
 
 import sys
+import pyarrow as pa
+import pyarrow.flight
 
 from .spl_packet_utils import *
 from .spl_base_command import SplBaseCommand
@@ -25,4 +27,19 @@ class SplStreamingBatchCommand(SplBaseCommand):
             send_packet(output_stream, execute_meta, resp)
             self.lines = []
             if self.is_finish:
+                break
+
+    def process_data_v2(self, fd):
+        # client 获取 输入流
+        reader = self.flight_client.do_get(pa.flight.Ticket(bytes(fd.path, "uft-8")))
+        writer, _ = self.flight_client.do_put(fd, self.schema)
+        while True:
+            try:
+                # RecordBatch  .to_pandas()
+                batch = self.streaming_handle_v2(reader.read_next_batch())
+                # 输出结果
+                writer.write_batch(batch)
+            except StopIteration:
+                writer.close()
+                self.finish()
                 break

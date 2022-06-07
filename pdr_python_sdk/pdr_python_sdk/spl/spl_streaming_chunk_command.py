@@ -12,6 +12,8 @@ limitations under the License.
 """
 
 import sys
+import pyarrow as pa
+import pyarrow.flight
 
 from .spl_packet_utils import *
 from .spl_base_command import SplBaseCommand
@@ -29,3 +31,15 @@ class SplStreamingChunkCommand(SplBaseCommand):
                 send_packet(output_stream, execute_meta, resp)
                 break
             send_packet(output_stream, execute_meta, '')
+
+    def process_data_v2(self, fd):
+        reader = self.flight_client.do_get(pa.flight.Ticket(bytes(fd.path, "uft-8")))
+        writer, _ = self.flight_client.do_put(fd, self.schema)
+
+        # RecordBatch  .to_pandas()
+        table = reader.read_all()
+        table = self.streaming_handle_v2(table)
+        # 输出结果
+        writer.write_table(table)
+        writer.close()
+        self.finish()
